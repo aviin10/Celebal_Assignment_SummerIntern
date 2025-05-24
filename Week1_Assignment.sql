@@ -139,3 +139,110 @@ GROUP BY e.FirstName, e.LastName;
 -- 26. Customers whose email contains 'a'
 SELECT * FROM DimCustomer
 WHERE EmailAddress LIKE '%a%';
+
+-- 27. Managers who have more than 4 people reporting to them
+SELECT ParentEmployeeKey AS ManagerKey, COUNT(*) AS Reportees
+FROM DimEmployee
+WHERE ParentEmployeeKey IS NOT NULL
+GROUP BY ParentEmployeeKey
+HAVING COUNT(*) > 4;
+
+-- 28. Orders and Product Names
+SELECT SalesOrderNumber, dp.EnglishProductName
+FROM FactInternetSales fis
+JOIN DimProduct dp ON fis.ProductKey = dp.ProductKey;
+
+-- 29. Orders placed by the best customer (highest total sales)
+SELECT TOP 1 dc.CustomerKey, dc.FirstName, dc.LastName, SUM(SalesAmount) AS TotalSpent
+FROM FactInternetSales fis
+JOIN DimCustomer dc ON fis.CustomerKey = dc.CustomerKey
+GROUP BY dc.CustomerKey, dc.FirstName, dc.LastName
+ORDER BY TotalSpent DESC;
+
+-- 30. Orders placed by customers who do not have a Fax number
+SELECT fis.*
+FROM FactInternetSales fis
+JOIN DimCustomer dc ON fis.CustomerKey = dc.CustomerKey
+WHERE dc.Phone IS NULL;
+
+-- 31. Postal codes where 'Tofu' was shipped
+SELECT DISTINCT dg.PostalCode
+FROM FactInternetSales fis
+JOIN DimProduct dp ON fis.ProductKey = dp.ProductKey
+JOIN DimCustomer dc ON fis.CustomerKey = dc.CustomerKey
+JOIN DimGeography dg ON dc.GeographyKey = dg.GeographyKey
+WHERE dp.EnglishProductName LIKE '%Tofu%';
+
+-- 32. Products shipped to France
+SELECT DISTINCT dp.EnglishProductName
+FROM FactInternetSales fis
+JOIN DimCustomer dc ON fis.CustomerKey = dc.CustomerKey
+JOIN DimGeography dg ON dc.GeographyKey = dg.GeographyKey
+JOIN DimProduct dp ON fis.ProductKey = dp.ProductKey
+WHERE dg.EnglishCountryRegionName = 'France';
+
+-- 33. Product names and categories (assuming product category = supplier)
+SELECT dp.EnglishProductName, dpc.EnglishProductCategoryName
+FROM DimProduct dp
+JOIN DimProductSubcategory dps ON dp.ProductSubcategoryKey = dps.ProductSubcategoryKey
+JOIN DimProductCategory dpc ON dps.ProductCategoryKey = dpc.ProductCategoryKey
+WHERE dpc.EnglishProductCategoryName = 'Specialty Biscuits, Ltd.'; -- Replace with valid category if needed
+
+
+-- 34. Products that were never ordered
+SELECT * FROM DimProduct
+WHERE ProductKey NOT IN (SELECT DISTINCT ProductKey FROM FactInternetSales);
+
+-- 35. Products with stock < 10 and 0 units on order
+-- Assume 'UnitsInStock' and 'UnitsOnOrder' are available (you may need to adjust table name)
+SELECT * FROM DimProduct
+WHERE UnitsInStock < 10 AND UnitsOnOrder = 0;
+
+-- 36. Top 10 countries by sales
+SELECT TOP 10 dst.SalesTerritoryCountry, SUM(fis.SalesAmount) AS TotalSales
+FROM FactInternetSales fis
+JOIN DimSalesTerritory dst ON fis.SalesTerritoryKey = dst.SalesTerritoryKey
+GROUP BY dst.SalesTerritoryCountry
+ORDER BY TotalSales DESC;
+
+-- 37. Orders taken by employees for customers with IDs between 'A' and 'AO'
+-- Assuming Customer AlternateKey has character IDs
+SELECT e.FirstName, e.LastName, COUNT(*) AS OrdersTaken
+FROM FactInternetSales fis
+JOIN DimCustomer dc ON fis.CustomerKey = dc.CustomerKey
+JOIN DimEmployee e ON fis.SalesTerritoryKey = e.SalesTerritoryKey
+WHERE dc.CustomerAlternateKey BETWEEN 'A' AND 'AO'
+GROUP BY e.FirstName, e.LastName;
+
+-- 38. Order date of the most expensive order
+SELECT TOP 1 OrderDateKey, SalesOrderNumber, SalesAmount
+FROM FactInternetSales
+ORDER BY SalesAmount DESC;
+
+-- 39. Product name and total revenue from that product
+SELECT dp.EnglishProductName, SUM(fis.SalesAmount) AS TotalRevenue
+FROM FactInternetSales fis
+JOIN DimProduct dp ON fis.ProductKey = dp.ProductKey
+GROUP BY dp.EnglishProductName
+ORDER BY TotalRevenue DESC;
+
+-- 40. Number of products per category (since supplier isn't available)
+SELECT dpc.EnglishProductCategoryName AS ProductCategory, COUNT(*) AS ProductCount
+FROM DimProduct dp
+JOIN DimProductSubcategory dps ON dp.ProductSubcategoryKey = dps.ProductSubcategoryKey
+JOIN DimProductCategory dpc ON dps.ProductCategoryKey = dpc.ProductCategoryKey
+GROUP BY dpc.EnglishProductCategoryName;
+
+
+-- 41. Top 10 customers based on total business
+SELECT TOP 10 dc.FirstName, dc.LastName, SUM(fis.SalesAmount) AS TotalSpent
+FROM FactInternetSales fis
+JOIN DimCustomer dc ON fis.CustomerKey = dc.CustomerKey
+GROUP BY dc.FirstName, dc.LastName
+ORDER BY TotalSpent DESC;
+
+-- 42. Total revenue of the company
+SELECT SUM(SalesAmount) AS TotalRevenue
+FROM FactInternetSales;
+
+
